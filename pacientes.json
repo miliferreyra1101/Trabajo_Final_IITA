@@ -1,19 +1,26 @@
 {
-    "Sol|Milagros Ferreyra": {
+    "Sol|Milagros Ferreyra Solá": {
         "nombre": "Sol",
         "especie": "Perro",
         "peso": 3.0,
         "dueño": {
-            "nombre": "Milagros Ferreyra",
+            "nombre": "Milagros Ferreyra Solá",
             "correo": "miliferreyra.1101@gmail.com",
-            "tel": "2429832"
+            "tel": "115115115"
         },
         "fecha_nac": "11/01/2016",
-        "historial_vacunas": [
-            {
-                "nombre": "Antirrábica",
-                "fecha": "11/05/2026"
-            }
-        ]
+        "historial_vacunas": []
+    },
+    "Oreo|Joel Tejada": {
+        "nombre": "Oreo",
+        "especie": "Perro",
+        "peso": 10.0,
+        "dueño": {
+            "nombre": "Joel Tejada",
+            "correo": "joeltejadatrigo@gmail.com",
+            "tel": "111111111"
+        },
+        "fecha_nac": "12/04/2020",
+        "historial_vacunas": []
     }
 }

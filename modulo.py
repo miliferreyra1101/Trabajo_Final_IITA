@@ -1,181 +1,416 @@
-from clases import Dueño, Mascota
-from datetime import datetime
-#En ese modulo se incluyen las funciones: 1-Mostrar menú. 2-Añadir Paciente. 3- Mostrar datos. 4- Modificar datos 5- Borrar paciente
+from clases import Dueño, Mascota, Vacuna
+from datetime import datetime, timedelta
+import flet as ft
+import persistencia
+from email.mime.text import MIMEText
+from smtplib import SMTP
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-def pedir_opcion_menu(): #Fución para pedir al usuario y quiere hacer, y usarlo siempre que sea necesario
-    while True:
+VACUNAS_POR_ESPECIE = {
+    "Perro": ["Desparasitación", "Quíntuple", "Antirrábica"],
+    "Gato": ["Desparasitación", "Triple Felina", "Antirrábica"]
+}
+
+def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    tx_dueño = ft.TextField(label="Nombre del dueño.")
+    tx_correo = ft.TextField(label="Correo Electrónico.")
+    tx_tel = ft.TextField(label="Teléfono (solo números).")
+    tx_mascota = ft.TextField(label="Nombre de la Mascota.")
+    drop_especie= ft.Dropdown(options=[
+        ft.dropdown.Option(key="Perro"),
+        ft.dropdown.Option(key="Gato"),
+        ])
+    tx_peso = ft.TextField(label="Peso (kg).")
+    tx_fecha_nac = ft.TextField(label="Fecha Nacimiento (DD/MM/AAAA).")
+    def procesar_registro(e):
+        tx_correo.error_text = None
+        tx_tel.error_text = None
+        tx_peso.error_text = None
+        tx_fecha_nac.error_text = None
+        nombre_dueño = tx_dueño.value.strip().title()
+        correo = tx_correo.value.lower()
+        tel = tx_tel.value
+        if not tx_dueño.value.strip():
+            tx_dueño.error_text = "El nombre del dueño es obligatorio"
+            page.update()
+            return
+        if correo.isdigit() or "@" not in correo or "." not in correo:
+            tx_correo.error_text = "Formato de correo inválido (Debe contener @ y .)"
+            page.update()
+            return
+        if not tel.isdigit():
+            tx_tel.error_text = "Use solo números."
+            page.update()
+            return
+        dueño = Dueño(nombre_dueño, correo, tel)
+        if not tx_mascota.value.strip():
+            tx_mascota.error_text = "El nombre de la mascota es obligatorio"
+            page.update()
+            return
+        nombre_m = tx_mascota.value.strip().title()
+        llave = f"{nombre_m}|{dueño.nombre}"
         try:
-            print("\nMENU:"
-                "\n1. Anadir datos un paciente"
-                "\n2. Mostrar datos de un paciente"
-                "\n3. Modificar datos de un paciente"
-                "\n4. Mostrar calendario de vacunación"
-                "\n5. Añadir vacunas."
-                "\n6. Borrar registro."
-                "\n0. Salir del sistema.")
-            opcion = int(input("\n-------> Ingrese aquí: "))
-            if opcion in [1, 2, 3, 4, 5, 6, 0]:
-                return opcion
-            else:
-                print("Esa opción no está en el menú.") 
+            peso = float(tx_peso.value)
+            if peso <= 0:
+                tx_peso.error_text = "El peso debe ser mayor a 0."
+                page.update()
+                return
         except ValueError:
-            print("Error: Por favor, ingrese un número.") 
-
-def aniadir_paciente(diccionario_pacientes):
-    nombre_dueño = input("Ingrese el nombre del dueño: ").strip().title() #Para quitar espacios y que se guarde como Maria
-    while True:
-        correo = input("Ingrese su correo electrónico: ").lower() #Verificar que el correo esté escrito en el formato correcto
-        if correo.isdigit():
-            print("Error: El correo no puede ser solo números. Ingrese una dirección válida.")
-        elif "@" not in correo or "." not in correo:
-            print("Error: Formato de correo inválido (debe incluir '@' y un dominio como '.com').")
-        else:
-            break
-    while True: #Verificar que el número sea solo número
-        tel = input("Ingrese su teléfono(solo números): ")
-        if tel.isdigit():
-            break
-        else: print("Error: El teléfono no debe contener letras ni espacios. Use solo números.")
-    nuevo_dueño = Dueño(nombre_dueño,correo,tel)
-    nombre = input("Ingrese en nombre de la mascota: ").strip().title()
-    llave = f"{nombre}|{nuevo_dueño.nombre}"
-    if llave in diccionario_pacientes:
-        print(f"\n¡Atención! Ya existe un paciente llamado '{nombre}' asociado a '{nombre_dueño}'.")
-        print("Si desea cambiar sus datos, use la opción 'Modificar'.")
-        return None
-    while True:
+            tx_peso.error_text = "Formato inválido."
+            page.update()
+            return
         try:
-            perro_o_gato = int(input("Ingrese su especie. 1. Perro. 2. Gato.  ")) #Para solo aceptar 1 y 2 como respuesta. 
-            if perro_o_gato in [1, 2]:
-                if perro_o_gato == 1:
-                    especie = "Perro"
-                elif perro_o_gato == 2:
-                    especie = "Gato"
-                break
-            else: print("Esa opción no es válida.")
+            fecha_nac = datetime.strptime(tx_fecha_nac.value.strip(), "%d/%m/%Y")
+            if fecha_nac > datetime.now():
+                tx_fecha_nac.error_text = "La fecha no puede ser futura."
+                page.update()
+                return
         except ValueError:
-            print("Error: Por favor, ingrese un número.")
-    while True: #Para que el peso pueda ser decimal, descarte pesos menores a 0, y no permita algo que no sea numero
-        try:
-            peso_input = input("Ingrese su peso: ")
-            peso = float(peso_input)
-            if peso > 0:
-                break
-            else:
-                print("Error: El peso debe ser un número mayor a cero.")         
-        except ValueError:
-            print("Error: Formato inválido. Por favor, ingrese solo números")
-    while True:
-            fecha_input = input("Fecha de nacimiento (DD/MM/AAAA): ").strip()
-            try:
-                fecha_nac = datetime.strptime(fecha_input, "%d/%m/%Y")
-                if fecha_nac > datetime.now():
-                    print("Error: La fecha de nacimiento no puede ser futura.")
-                else:
-                    break
-            except ValueError:
-                print("Formato incorrecto. Por favor, use el formato día/mes/año (Ej: 15/05/2023).")
-    nuevo_paciente = Mascota(nombre,especie,peso,nuevo_dueño,fecha_nac)
-    diccionario_pacientes[llave] = nuevo_paciente #Crear la llave y añadirla al diccionario
-    return nombre #Devolver el dato a main, para que pueda ser mostrado
-    
+            tx_fecha_nac.error_text = "Use DD/MM/AAAA"
+            page.update()
+            return
+        if llave in diccionario_pacientes:
+            page.snack_bar = ft.SnackBar(ft.Text(f"¡Atención! Ya existe {nombre_m} de {nombre_dueño}"))
+            page.snack_bar.open = True
+            page.update()
+            return
+        especie = drop_especie.value 
+        nuevo_paciente = Mascota(nombre_m, especie, peso, dueño, fecha_nac)
+        diccionario_pacientes[llave] = nuevo_paciente
+        page.snack_bar = ft.SnackBar(ft.Text(f"Paciente {nombre_m} añadido!"), bgcolor=ft.colors.GREEN_700)
+        page.snack_bar.open = True
+        persistencia.escribir_json(diccionario_pacientes)
+        page.update()
+    page.add(
+        ft.Column([
+            ft.Text("NUEVO PACIENTE", size=20, weight="bold"),
+            tx_dueño, tx_correo, tx_tel, tx_mascota, drop_especie, tx_peso, tx_fecha_nac,
+            ft.Row([
+                ft.ElevatedButton("GUARDAR", on_click=procesar_registro),
+                ft.ElevatedButton("VOLVER", 
+                    icon=ft.icons.ARROW_BACK,
+                    on_click=lambda _: volver_callback(None))
+            ], alignment=ft.MainAxisAlignment.CENTER)
+        ]
+        )
+    )
+    page.update()
 
-def mostrar_datos(diccionario_pacientes):
-    print("\n" + Fore.LIGHTGREEN_EX +"━━━━━━━━━━━━━"*5 + Style.RESET_ALL)
-    print(Back.LIGHTGREEN_EX + Style.BRIGHT + "         BUSCAR PACIENTE" + Fore.LIGHTGREEN_EX + "█"*35 + Style.RESET_ALL)
-    print(Fore.LIGHTGREEN_EX +"━━━━━━━━━━━━━"*5 + Style.RESET_ALL)
-    nom_m = input("Nombre de la mascota: ").strip().title()
-    nom_d = input("Nombre del dueño: ").strip().title()
-    busqueda = f"{nom_m}|{nom_d}"
-    if busqueda in diccionario_pacientes:
-        paciente = diccionario_pacientes[busqueda]
-        print(f"FICHA CLÍNICA: {paciente.nombre}")
-        print(f"Especie: {paciente.especie}")
-        print(f"Peso: {paciente.peso} kg")
-        print(f"Fecha de nacimiento {paciente.fecha_nac.strftime('%d/%m/%Y')}")
-        print(f"Dueño: {paciente.dueño.nombre}")
-        print(f"Contacto: {paciente.dueño.tel} | {paciente.dueño.correo}")
-    else:
-        print(f"No se encontró a la mascota '{nom_m}' asociada al dueño '{nom_d}'.")
-
-def modificar_datos(diccionario_pacientes):
-    print("\n--- MODIFICAR PACIENTE ---")
-    nom_m = input("Nombre de la mascota: ").strip().title()
-    nom_d = input("Nombre del dueño: ").strip().title()
-    llave_actual = f"{nom_m}|{nom_d}"
-
-    if llave_actual in diccionario_pacientes:
-        paciente = diccionario_pacientes[llave_actual]
-        print(f"\nEditando datos de {paciente.nombre}...")
-        print("1. Modificar Peso")
-        print("2. Cambio de titularidad (Nuevo Dueño)")
-        print("3. Actualizar contacto (Email/Tel)")
-        opcion = input("Seleccione una opción: ")
-        if opcion == "1":
-            try:
-                nuevo_peso = float(input(f"Peso actual: {paciente.peso}. Nuevo peso: "))
-                if nuevo_peso > 0:
-                    paciente.peso = nuevo_peso
-                    print("Peso actualizado.")
-                else:
-                    print("Error: El peso debe ser mayor a cero.")         
-            except ValueError:
-                    print("Error: Formato inválido. Ingrese solo números.")
-        elif opcion == "2":
-            nuevo_nombre_d = input("Nombre del nuevo dueño: ").strip().title()
-            paciente.dueño.nombre = nuevo_nombre_d
-            del diccionario_pacientes[llave_actual]
-            nueva_llave = f"{nom_m}-{nuevo_nombre_d}"
-            diccionario_pacientes[nueva_llave] = paciente
-            print(f"Cambio de titularidad exitoso. Nueva clave: {nueva_llave}")
-        elif opcion == "3":
-            while True:
-                print(f"\nModificando contacto de: {paciente.dueño.nombre}")                    
-                print("1. Cambiar solo Correo")
-                print("2. Cambiar solo Teléfono")
-                print("3. Cambiar ambos")
-                print("4. Volver atrás")
-                sub_opcion = input("Elija una opción: ").strip()
-                if sub_opcion in ["1", "2", "3", "4"]:
-                    if sub_opcion in ["1", "3"]:
-                        while True:
-                            nuevo_correo = input("Ingrese nuevo correo: ").lower() 
-                            if "@" in nuevo_correo and "." in nuevo_correo and not nuevo_correo.isdigit():
-                                paciente.dueño.correo = nuevo_correo
-                                break
-                            else:
-                                print("Formato de correo inválido.")
-                    if sub_opcion in ["2", "3"]:
-                        while True:
-                            nuevo_tel = input("Nuevo teléfono (solo números): ")
-                            if nuevo_tel.isdigit():
-                                paciente.dueño.tel = nuevo_tel
-                                break
-                            else:
-                                print("Error: Use solo números.")
-                    if sub_opcion != "4":
-                        print("Datos actualizados correctamente.")
-                    break  
-                else:
-                   print(f"'{sub_opcion}' no es válido. Ingrese 1 a 4.")
-    else:
-            print("No se encontró la combinación Mascota/Dueño.")
-
-def borrar_paciente(diccionario_pacientes):
-    print("\n--- BORRAR REGISTRO DE PACIENTE ---")
-    nom_m = input("Nombre de la mascota: ").strip().title()
-    nom_d = input("Nombre del dueño: ").strip().title()
-    llave = f"{nom_m}|{nom_d}"
-
-    if llave in diccionario_pacientes:
-        paciente = diccionario_pacientes[llave]
-        print(f"\nADVERTENCIA: Está a punto de eliminar a {paciente.nombre} y todo su historial.")
-        confirmar = input(f"¿Está seguro de que desea hacerlo'? (S/N): ").strip().upper()
+def mostrar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    tx_mascota = ft.TextField(label="Nombre de la Mascota")
+    tx_dueño = ft.TextField(label="Nombre del dueño (Completo)")
+    def buscar(e):
+        nom_m = tx_mascota.value.strip().title()
+        nom_d = tx_dueño.value.strip().title()
+        busqueda = f"{nom_m}|{nom_d}"
+        if busqueda in diccionario_pacientes:
+            paciente = diccionario_pacientes[busqueda]
+            page.add(ft.Text(f"Datos del paciente: {paciente.nombre}", size=18, weight="bold", color=ft.colors.BLUE_GREY_800),
+                        ft.Text(f"Especie: {paciente.especie}"),
+                        ft.Text(f"Peso: {paciente.peso} kg"),
+                        ft.Text(f"Dueño: {paciente.dueño.nombre}"),
+                        ft.Text(f"Contacto: {paciente.dueño.tel}"),
+                        ft.Text(f"Correo: {paciente.dueño.correo}")
+                        ),
         
-        if confirmar == "S":
-            del diccionario_pacientes[llave]
-            print(f"El registro de {nom_m} ha sido eliminado permanentemente.")
         else:
-            print("Operación cancelada. El registro sigue intacto.")
-    else:
-        print(f"Error: No se encontró ningún registro para '{nom_m}' asociado a '{nom_d}'.")
+            page.add(ft.Text(f"No se encontró a '{nom_m}' de '{nom_d}'.", color=ft.colors.RED_600, weight="bold"))
+            page.update()
+
+    page.add(ft.Column([
+                ft.Text("BUSCAR PACIENTE", size=20, weight="bold"),
+                tx_mascota,
+                tx_dueño 
+                ]),
+                ft.Row([
+                        ft.ElevatedButton("BUSCAR", icon=ft.icons.SEARCH, on_click=buscar),
+                        ft.ElevatedButton("VOLVER", icon=ft.icons.ARROW_BACK, on_click=lambda _: volver_callback(None))
+                    ]
+                )
+    )
+    page.update()
+
+def modificar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    nombre_mascota = ft.TextField(label="Nombre de la mascota")
+    nombre_dueño = ft.TextField(label="Nombre del dueño")
+    opcion = ft.Dropdown(
+        label="Seleccione lo que desee editar:",
+        options=[
+            ft.dropdown.Option("1", "Modificar peso"),
+            ft.dropdown.Option("2", "Cambio de titularidad"),
+            ft.dropdown.Option("3", "Actualizar contacto (Telefono)"),
+            ft.dropdown.Option("4", "Actualizar contacto (Correo)"),
+        ]
+    )
+    nuevo_dato = ft.TextField(label="Ingrese el nuevo dato")
+    def ejecutar_modificacion(e):
+        nuevo_dato.error_text = None
+        nom_m = nombre_mascota.value.strip().title()
+        nom_d = nombre_dueño.value.strip().title()
+        llave = f"{nom_m}|{nom_d}"
+        if llave not in diccionario_pacientes:
+            page.snack_bar = ft.SnackBar(ft.Text(f"No se encuentra el paciente en el sistema."))
+            page.snack_bar.open = True
+            page.update()
+            return
+        paciente = diccionario_pacientes[llave]
+        valor = nuevo_dato.value.strip()
+        if opcion.value == "1":
+            try:
+                peso = float(valor)
+                if peso <= 0:
+                    nuevo_dato.error_text = "El peso debe ser mayor a 0."
+                    page.update()
+                    return
+            except ValueError:
+                nuevo_dato.error_text = "Formato inválido."
+                page.update()
+                return
+        if opcion.value == "2":
+            nuevo_nombre = valor.title()
+            paciente.dueño.nombre = nuevo_nombre
+            del diccionario_pacientes[llave]
+            nueva_llave = f"{nom_m}|{nuevo_nombre}"
+            diccionario_pacientes[nueva_llave] = paciente
+        if opcion.value == "3":
+            if nuevo_dato.isdigit():
+                paciente.dueño.tel = valor
+            else:
+                nuevo_dato.error_text = "Use solo números."
+                page.update()
+                return
+        if opcion.value == "4":
+            if "@" in valor and "." in valor and not valor.isdigit():
+                paciente.dueño.correo = valor.lower()
+            else:
+                nuevo_dato.error_text = "Formato de correo inválido."
+                page.update()
+                return
+        page.snack_bar = ft.SnackBar(ft.Text(f"Modificación éxitosa"), bgcolor=ft.colors.GREEN_700)
+        page.snack_bar.open = True
+        persistencia.escribir_json(diccionario_pacientes)
+        page.update()
+    page.add(
+        ft.Column([
+            ft.Text("MODIFICAR PACIENTE", size=20, weight="bold"),
+            nombre_mascota,
+            nombre_dueño,
+            opcion,
+            nuevo_dato,
+            ft.Row([
+                ft.ElevatedButton("GUARDAR CAMBIOS", icon=ft.icons.CHECK, on_click=ejecutar_modificacion),
+                ft.TextButton("CANCELAR", on_click=lambda _: volver_callback(None))
+            ])
+        ])
+    )
+    page.update()
+
+def agregar_vacuna(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    tx_mascota = ft.TextField(label="Nombre de la Mascota")
+    tx_dueño = ft.TextField(label="Nombre del Dueño (Completo)")
+    dd_vacuna = ft.Dropdown(
+        label="Vacuna",
+        options=[]
+    )
+    tx_fecha = ft.TextField(
+        label="Fecha (DD/MM/AAAA)"
+    )
+    def cargar_vacunas(e):
+        nom_m = tx_mascota.value.strip().capitalize()
+        nom_d = tx_dueño.value.strip().title()
+        llave = f"{nom_m}|{nom_d}"
+        if llave not in diccionario_pacientes:
+            page.snack_bar = ft.SnackBar(ft.Text(f"No se encuentra el paciente en el sistema."))
+            page.snack_bar.open = True
+            page.update()
+            return
+        else: 
+            page.snack_bar = ft.SnackBar(ft.Text(f"¡Paciente encontrado!"), bgcolor=ft.colors.GREEN_700)
+            page.snack_bar.open = True
+        mascota_actual = diccionario_pacientes[llave]
+        opciones = VACUNAS_POR_ESPECIE.get(mascota_actual.especie, [])
+        dd_vacuna.options.clear()
+        for vacuna in opciones.values():
+            dd_vacuna.options.append(
+                ft.dropdown.Option(vacuna))
+        page.update()
+    def guardar_vacuna(e):
+        nom_m = tx_mascota.value.strip().capitalize()
+        nom_d = tx_dueño.value.strip().title()
+        llave = f"{nom_m}|{nom_d}"
+        if llave not in diccionario_pacientes:
+            page.snack_bar = ft.SnackBar(ft.Text(f"No se encuentra el paciente en el sistema."))
+            page.snack_bar.open = True
+            page.update()
+            return
+        mascota_actual = diccionario_pacientes[llave]
+        try:
+            fecha_vac = datetime.strptime(tx_fecha.value.strip(), "%d/%m/%Y")
+            if fecha_vac > datetime.now():
+                tx_fecha.error_text = "La fecha no puede ser futura."
+                page.update()
+                return
+        except ValueError:
+            tx_fecha.error_text = "Use DD/MM/AAAA"
+            page.update()
+            return
+        nueva_vacuna = Vacuna(dd_vacuna.value,fecha_vac)
+        mascota_actual.historial_vacunas.append(nueva_vacuna)
+        persistencia.escribir_json(diccionario_pacientes)
+        page.snack_bar = ft.SnackBar(ft.Text(f"¡Vacuna añadida con éxito!"), bgcolor=ft.colors.GREEN_700)
+        page.snack_bar.open = True
+        page.update()
+    page.add(ft.Column([
+        ft.Text("AGREGAR VACUNA", size=20, weight="bold"),
+        tx_mascota,
+        tx_dueño,
+        ft.ElevatedButton(
+            "Buscar Paciente y vacunas correspondientes", 
+            on_click=cargar_vacunas
+        ),
+        dd_vacuna,
+        tx_fecha,
+        ft.ElevatedButton(
+            "Guardar vacuna",
+            on_click=guardar_vacuna
+        ),
+        ft.ElevatedButton(
+            "Volver",
+            on_click=volver_callback
+        )
+    ]))
+    page.update()
+
+def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    tx_mascota = ft.TextField(label="Nombre de la mascota")
+    tx_dueño = ft.TextField(label="Nombre del dueño (Completo)")
+    zona_notificacion = ft.Column()
+    def enviar_correo(e, paciente, pendientes):
+        lista_formateada = "\n- ".join(pendientes)
+        mensaje = (
+            f"Estimado/a {paciente.dueño.nombre}, le informamos que su mascota {paciente.nombre} "
+            f"presenta las siguientes vacunas pendientes:\n- {lista_formateada}\n"
+            "Saludos cordiales. \nVeterinaria Huellitas. \nAbierto lunes a sábado de 8:00am a 21:00pm"
+            )
+        remitente = "milagrosferreyramilagros@gmail.com"
+        password = os.getenv("PASSWORD")
+        destinatario = paciente.dueño.correo
+        mensaje_correo = MIMEText(mensaje)
+        mensaje_correo["From"] = remitente
+        mensaje_correo["To"] = destinatario
+        mensaje_correo["Subject"] = "Aviso de vacunas vencidas - VETERINARIA HUELLITAS"
+        servidor = SMTP("smtp.gmail.com", 587)
+        servidor.ehlo()
+        servidor.starttls()
+        servidor.login(remitente, password)
+        servidor.sendmail(remitente, destinatario, mensaje_correo.as_string())
+        servidor.quit()
+        page.snack_bar = ft.SnackBar(ft.Text("¡Correo enviado con éxito!"), bgcolor="green")
+        page.snack_bar.open = True
+        page.update()
+    def encontrar_vacunas(e):
+        zona_notificacion.controls.clear()
+        nom_m = tx_mascota.value.strip().capitalize()
+        nom_d = tx_dueño.value.strip().title()
+        llave = f"{nom_m}|{nom_d}"
+        if llave not in diccionario_pacientes:
+            page.snack_bar = ft.SnackBar(ft.Text(f"No se encuentra el paciente en el sistema."))
+            page.snack_bar.open = True
+            page.update()
+            return
+        paciente = diccionario_pacientes[llave]
+        hoy = datetime.now()
+        vacunas_para_notificar = []
+        mensajes_resultado = []
+        obligatorias = VACUNAS_POR_ESPECIE.get(paciente.especie, [])
+        for vacuna_obligatoria in obligatorias:
+            fechas = []
+            for v in paciente.historial_vacunas:
+                if v.nombre == vacuna_obligatoria: 
+                    fechas.append(v.fecha)
+            if not fechas:
+                mensajes_resultado.append(f"Falta: {vacuna_obligatoria}")
+                vacunas_para_notificar.append(vacuna_obligatoria)
+            else:
+                ultima_fecha = max(fechas)
+                vencimiento = ultima_fecha + timedelta(days=365)
+                if hoy > vencimiento:
+                    mensajes_resultado.append(f"{vacuna_obligatoria} vencida.")
+                    vacunas_para_notificar.append(vacuna_obligatoria)
+                else:
+                    dias_restantes = (vencimiento - hoy).days
+                    mensajes_resultado.append(f"{vacuna_obligatoria} al día ({dias_restantes} días).")
+        if vacunas_para_notificar:
+            zona_notificacion.controls.append(ft.ElevatedButton(
+                    f"Notificar {len(vacunas_para_notificar)} vacunas al dueño",
+                    icon=ft.icons.EMAIL,
+                    on_click=lambda _: enviar_correo(None, paciente, vacunas_para_notificar)))
+        resumen = "\n".join(mensajes_resultado)
+        page.snack_bar = ft.SnackBar(
+            ft.Text(f"Estado de {paciente.nombre}:\n{resumen}"),
+            duration=4000 
+        )
+        page.snack_bar.open = True
+        page.update()
+    page.add(
+        ft.Text("CONSULTA DE CARNET", size=20, weight="bold"),
+        tx_mascota,
+        tx_dueño,
+        ft.Row([
+            ft.ElevatedButton("BUSCAR", on_click=encontrar_vacunas),
+            ft.TextButton("VOLVER", on_click=lambda _: volver_callback(None))
+        ]),
+        zona_notificacion
+    )
+    page.update()
+
+def eliminar_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
+    page.clean()
+    tx_mascota = ft.TextField(label="Nombre de la mascota a eliminar")
+    tx_dueño = ft.TextField(label="Nombre del dueño")
+    def confirmar_eliminacion(e):
+        nom_m = tx_mascota.value.strip().capitalize()
+        nom_d = tx_dueño.value.strip().title()
+        llave = f"{nom_m}|{nom_d}"
+        if llave in diccionario_pacientes:
+            del diccionario_pacientes[llave]
+            persistencia.escribir_json(diccionario_pacientes)
+            page.snack_bar = ft.SnackBar(
+                ft.Text(f"Paciente {nom_m} eliminado correctamente."),
+                bgcolor="green"
+            )
+        else:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("No se encontró el paciente.")
+            )
+        page.snack_bar.open = True
+        page.update()
+    page.add(
+        ft.Column([
+            ft.Text("ELIMINAR REGISTRO", size=25, weight="bold"),
+            tx_mascota,
+            tx_dueño,
+            ft.Row([
+                ft.ElevatedButton(
+                    "ELIMINAR",
+                    on_click=confirmar_eliminacion,
+                    style=ft.ButtonStyle(color="white", bgcolor="red")
+                ),
+                ft.TextButton("VOLVER", on_click=lambda _: volver_callback(None))
+            ])
+        ])
+    )
+    page.update()
+        
+def salir(page: ft.Page, diccionario_pacientes):
+    persistencia.escribir_json(diccionario_pacientes)
+    page.window_close()
+
+   
