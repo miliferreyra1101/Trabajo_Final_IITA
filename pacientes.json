@@ -1,0 +1,19 @@
+{
+    "Sol|Milagros Ferreyra": {
+        "nombre": "Sol",
+        "especie": "Perro",
+        "peso": 3.0,
+        "dueño": {
+            "nombre": "Milagros Ferreyra",
+            "correo": "miliferreyra.1101@gmail.com",
+            "tel": "2429832"
+        },
+        "fecha_nac": "11/01/2016",
+        "historial_vacunas": [
+            {
+                "nombre": "Antirrábica",
+                "fecha": "11/05/2026"
+            }
+        ]
+    }
+}
