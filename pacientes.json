@@ -11,12 +11,12 @@
         "fecha_nac": "11/01/2016",
         "historial_vacunas": []
     },
-    "Oreo|Joel Tejada": {
+    "Oreo|Joel Tejada Trigo": {
         "nombre": "Oreo",
         "especie": "Perro",
         "peso": 10.0,
         "dueño": {
-            "nombre": "Joel Tejada",
+            "nombre": "Joel Tejada Trigo",
             "correo": "joeltejadatrigo@gmail.com",
             "tel": "111111111"
         },

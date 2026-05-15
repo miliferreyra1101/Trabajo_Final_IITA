@@ -2,6 +2,8 @@ import flet as ft
 import modulo    
 import persistencia  
 
+#Archivo a ejecutar
+
 def main(page: ft.Page):
     diccionario_pacientes = persistencia.leer_json()
     def mostrar_menu(e=None):
@@ -11,13 +13,13 @@ def main(page: ft.Page):
                 size=30, 
                 weight=ft.FontWeight.BOLD,
                 color=ft.colors.GREY_600),
-                ft.ElevatedButton(text="1. Añadir Paciente", color=ft.colors.GREY_800, on_click=lambda _: modulo.aniadir_paciente(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="2. Mostrar datos.", color=ft.colors.GREY_800, on_click=lambda _: modulo.mostrar_datos(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="2. Modificar datos.", color=ft.colors.GREY_800, on_click=lambda _: modulo.modificar_datos(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="4. Carnet de Vacunas.", color=ft.colors.GREY_800, on_click=lambda _: modulo.mostrar_carnet(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="5. Registrar Vacunas.", color=ft.colors.GREY_800, on_click=lambda _: modulo.agregar_vacuna(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="6. Eliminar registro", color=ft.colors.GREY_800, on_click=lambda _: modulo.eliminar_paciente(page, diccionario_pacientes, mostrar_menu)),
-                ft.ElevatedButton(text="0. Guardar y Salir", color=ft.colors.GREY_800, on_click=lambda _: modulo.salir(page, diccionario_pacientes)),
+                ft.ElevatedButton(text="1. Añadir Paciente", color=ft.colors.GREY_800, on_click=lambda e: modulo.aniadir_paciente(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="2. Mostrar datos.", color=ft.colors.GREY_800, on_click=lambda e: modulo.mostrar_datos(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="3. Modificar datos.", color=ft.colors.GREY_800, on_click=lambda e: modulo.modificar_datos(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="4. Carnet de Vacunas.", color=ft.colors.GREY_800, on_click=lambda e: modulo.mostrar_carnet(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="5. Registrar Vacunas.", color=ft.colors.GREY_800, on_click=lambda e: modulo.agregar_vacuna(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="6. Eliminar registro", color=ft.colors.GREY_800, on_click=lambda e: modulo.eliminar_paciente(page, diccionario_pacientes, mostrar_menu)),
+                ft.ElevatedButton(text="0. Guardar y Salir", color=ft.colors.GREY_800, on_click=lambda e: modulo.salir(page, diccionario_pacientes)),
             )
         page.update()
 

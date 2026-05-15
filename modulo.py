@@ -19,7 +19,7 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
     tx_correo = ft.TextField(label="Correo Electrónico.")
     tx_tel = ft.TextField(label="Teléfono (solo números).")
     tx_mascota = ft.TextField(label="Nombre de la Mascota.")
-    drop_especie= ft.Dropdown(options=[
+    drop_especie= ft.Dropdown(label="Seleccione la especie: ", options=[
         ft.dropdown.Option(key="Perro"),
         ft.dropdown.Option(key="Gato"),
         ])
@@ -34,11 +34,11 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
         correo = tx_correo.value.lower()
         tel = tx_tel.value
         if not tx_dueño.value.strip():
-            tx_dueño.error_text = "El nombre del dueño es obligatorio"
+            tx_dueño.error_text = "El nombre del dueño es obligatorio."
             page.update()
             return
         if correo.isdigit() or "@" not in correo or "." not in correo:
-            tx_correo.error_text = "Formato de correo inválido (Debe contener @ y .)"
+            tx_correo.error_text = "Formato de correo inválido (Debe contener @ y .)."
             page.update()
             return
         if not tel.isdigit():
@@ -47,7 +47,7 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
             return
         dueño = Dueño(nombre_dueño, correo, tel)
         if not tx_mascota.value.strip():
-            tx_mascota.error_text = "El nombre de la mascota es obligatorio"
+            tx_mascota.error_text = "El nombre de la mascota es obligatorio."
             page.update()
             return
         nombre_m = tx_mascota.value.strip().title()
@@ -77,6 +77,10 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
             page.snack_bar.open = True
             page.update()
             return
+        if drop_especie.value is None or drop_especie.value == "":
+            drop_especie.error_text = "Es obligatorio añadir una especie."
+            page.update()
+            return
         especie = drop_especie.value 
         nuevo_paciente = Mascota(nombre_m, especie, peso, dueño, fecha_nac)
         diccionario_pacientes[llave] = nuevo_paciente
@@ -92,7 +96,7 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
                 ft.ElevatedButton("GUARDAR", on_click=procesar_registro),
                 ft.ElevatedButton("VOLVER", 
                     icon=ft.icons.ARROW_BACK,
-                    on_click=lambda _: volver_callback(None))
+                    on_click=lambda e: volver_callback(None))
             ], alignment=ft.MainAxisAlignment.CENTER)
         ]
         )
@@ -203,8 +207,8 @@ def modificar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
             opcion,
             nuevo_dato,
             ft.Row([
-                ft.ElevatedButton("GUARDAR CAMBIOS", icon=ft.icons.CHECK, on_click=ejecutar_modificacion),
-                ft.TextButton("CANCELAR", on_click=lambda _: volver_callback(None))
+                ft.ElevatedButton(text="GUARDAR CAMBIOS", icon=ft.icons.CHECK, on_click=ejecutar_modificacion),
+                ft.TextButton(text="CANCELAR", on_click=lambda e: volver_callback(None))
             ])
         ])
     )
@@ -270,20 +274,13 @@ def agregar_vacuna(page: ft.Page, diccionario_pacientes, volver_callback):
         ft.Text("AGREGAR VACUNA", size=20, weight="bold"),
         tx_mascota,
         tx_dueño,
-        ft.ElevatedButton(
-            "Buscar Paciente y vacunas correspondientes", 
+        ft.ElevatedButton(text="Buscar Paciente y vacunas correspondientes", 
             on_click=cargar_vacunas
         ),
         dd_vacuna,
         tx_fecha,
-        ft.ElevatedButton(
-            "Guardar vacuna",
-            on_click=guardar_vacuna
-        ),
-        ft.ElevatedButton(
-            "Volver",
-            on_click=volver_callback
-        )
+        ft.ElevatedButton(text="Guardar vacuna",on_click=guardar_vacuna),
+        ft.ElevatedButton(text="Volver",on_click=volver_callback)
     ]))
     page.update()
 
@@ -317,7 +314,7 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
         page.update()
     def encontrar_vacunas(e):
         zona_notificacion.controls.clear()
-        nom_m = tx_mascota.value.strip().capitalize()
+        nom_m = tx_mascota.value.strip().title()
         nom_d = tx_dueño.value.strip().title()
         llave = f"{nom_m}|{nom_d}"
         if llave not in diccionario_pacientes:
@@ -351,7 +348,7 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
             zona_notificacion.controls.append(ft.ElevatedButton(
                     f"Notificar {len(vacunas_para_notificar)} vacunas al dueño",
                     icon=ft.icons.EMAIL,
-                    on_click=lambda _: enviar_correo(None, paciente, vacunas_para_notificar)))
+                    on_click=lambda e: enviar_correo(None, paciente, vacunas_para_notificar)))
         resumen = "\n".join(mensajes_resultado)
         page.snack_bar = ft.SnackBar(
             ft.Text(f"Estado de {paciente.nombre}:\n{resumen}"),
@@ -364,8 +361,8 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
         tx_mascota,
         tx_dueño,
         ft.Row([
-            ft.ElevatedButton("BUSCAR", on_click=encontrar_vacunas),
-            ft.TextButton("VOLVER", on_click=lambda _: volver_callback(None))
+            ft.ElevatedButton(text="BUSCAR", on_click=encontrar_vacunas),
+            ft.TextButton(text="VOLVER", on_click=lambda e: volver_callback(None))
         ]),
         zona_notificacion
     )
@@ -398,12 +395,12 @@ def eliminar_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
             tx_mascota,
             tx_dueño,
             ft.Row([
-                ft.ElevatedButton(
+                ft.ElevatedButton(text=
                     "ELIMINAR",
                     on_click=confirmar_eliminacion,
                     style=ft.ButtonStyle(color="white", bgcolor="red")
                 ),
-                ft.TextButton("VOLVER", on_click=lambda _: volver_callback(None))
+                ft.TextButton(text="VOLVER", on_click=lambda e: volver_callback(None))
             ])
         ])
     )
