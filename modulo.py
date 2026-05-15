@@ -15,16 +15,16 @@ VACUNAS_POR_ESPECIE = {
 
 def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
     page.clean()
-    tx_dueño = ft.TextField(label="Nombre del dueño.")
-    tx_correo = ft.TextField(label="Correo Electrónico.")
-    tx_tel = ft.TextField(label="Teléfono (solo números).")
-    tx_mascota = ft.TextField(label="Nombre de la Mascota.")
+    tx_dueño = ft.TextField(label="Nombre del dueño (Completo)")
+    tx_correo = ft.TextField(label="Correo Electrónico")
+    tx_tel = ft.TextField(label="Teléfono (solo números)")
+    tx_mascota = ft.TextField(label="Nombre de la Mascota")
     drop_especie= ft.Dropdown(label="Seleccione la especie: ", options=[
         ft.dropdown.Option(key="Perro"),
         ft.dropdown.Option(key="Gato"),
         ])
-    tx_peso = ft.TextField(label="Peso (kg).")
-    tx_fecha_nac = ft.TextField(label="Fecha Nacimiento (DD/MM/AAAA).")
+    tx_peso = ft.TextField(label="Peso (kg)")
+    tx_fecha_nac = ft.TextField(label="Fecha Nacimiento (DD/MM/AAAA)")
     def procesar_registro(e):
         tx_correo.error_text = None
         tx_tel.error_text = None
@@ -69,11 +69,11 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
                 page.update()
                 return
         except ValueError:
-            tx_fecha_nac.error_text = "Use DD/MM/AAAA"
+            tx_fecha_nac.error_text = "Use DD/MM/AAAA."
             page.update()
             return
         if llave in diccionario_pacientes:
-            page.snack_bar = ft.SnackBar(ft.Text(f"¡Atención! Ya existe {nombre_m} de {nombre_dueño}"))
+            page.snack_bar = ft.SnackBar(ft.Text(f"¡Atención! Ya existe {nombre_m} de {nombre_dueño}.", bgcolors=ft.colors.RED_600))
             page.snack_bar.open = True
             page.update()
             return
@@ -84,17 +84,27 @@ def aniadir_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
         especie = drop_especie.value 
         nuevo_paciente = Mascota(nombre_m, especie, peso, dueño, fecha_nac)
         diccionario_pacientes[llave] = nuevo_paciente
-        page.snack_bar = ft.SnackBar(ft.Text(f"Paciente {nombre_m} añadido!"), bgcolor=ft.colors.GREEN_700)
+        page.snack_bar = ft.SnackBar(ft.Text(f"¡Paciente {nombre_m} añadido!"), bgcolor=ft.colors.GREEN_700)
         page.snack_bar.open = True
         persistencia.escribir_json(diccionario_pacientes)
         page.update()
     page.add(
         ft.Column([
-            ft.Text("NUEVO PACIENTE", size=20, weight="bold"),
+        ft.Container(
+            content=ft.Row(
+                [
+                    ft.Text("NUEVO PACIENTE", size=35, weight="bold"),
+                    ft.Icon(name=ft.icons.PERSON_ADD, size=35, color=ft.colors.GREEN_200), 
+                ],
+                alignment=ft.MainAxisAlignment.CENTER, 
+                vertical_alignment=ft.CrossAxisAlignment.CENTER 
+            ),
+            alignment=ft.alignment.center,
+        ),
             tx_dueño, tx_correo, tx_tel, tx_mascota, drop_especie, tx_peso, tx_fecha_nac,
             ft.Row([
-                ft.ElevatedButton("GUARDAR", on_click=procesar_registro),
-                ft.ElevatedButton("VOLVER", 
+                ft.ElevatedButton("GUARDAR", color=ft.colors.BLACK, icon = ft.icons.SAVE, on_click=procesar_registro),
+                ft.ElevatedButton("VOLVER", color=ft.colors.BLACK,
                     icon=ft.icons.ARROW_BACK,
                     on_click=lambda e: volver_callback(None))
             ], alignment=ft.MainAxisAlignment.CENTER)
@@ -131,8 +141,8 @@ def mostrar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
                 tx_dueño 
                 ]),
                 ft.Row([
-                        ft.ElevatedButton("BUSCAR", icon=ft.icons.SEARCH, on_click=buscar),
-                        ft.ElevatedButton("VOLVER", icon=ft.icons.ARROW_BACK, on_click=lambda _: volver_callback(None))
+                        ft.ElevatedButton("BUSCAR", color=ft.colors.BLACK, icon=ft.icons.SEARCH, on_click=buscar),
+                        ft.ElevatedButton("VOLVER", color=ft.colors.BLACK, icon=ft.icons.ARROW_BACK, on_click=lambda _: volver_callback(None))
                     ]
                 )
     )
@@ -182,7 +192,7 @@ def modificar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
             nueva_llave = f"{nom_m}|{nuevo_nombre}"
             diccionario_pacientes[nueva_llave] = paciente
         if opcion.value == "3":
-            if nuevo_dato.isdigit():
+            if valor.isdigit():
                 paciente.dueño.tel = valor
             else:
                 nuevo_dato.error_text = "Use solo números."
@@ -192,7 +202,7 @@ def modificar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
             if "@" in valor and "." in valor and not valor.isdigit():
                 paciente.dueño.correo = valor.lower()
             else:
-                nuevo_dato.error_text = "Formato de correo inválido."
+                nuevo_dato.error_text = "Formato de correo inválido (Debe contener @ y .)."
                 page.update()
                 return
         page.snack_bar = ft.SnackBar(ft.Text(f"Modificación éxitosa"), bgcolor=ft.colors.GREEN_700)
@@ -201,14 +211,14 @@ def modificar_datos(page: ft.Page, diccionario_pacientes, volver_callback):
         page.update()
     page.add(
         ft.Column([
-            ft.Text("MODIFICAR PACIENTE", size=20, weight="bold"),
+            ft.Text("MODIFICAR PACIENTE", size=25, weight="bold"),
             nombre_mascota,
             nombre_dueño,
             opcion,
             nuevo_dato,
             ft.Row([
-                ft.ElevatedButton(text="GUARDAR CAMBIOS", icon=ft.icons.CHECK, on_click=ejecutar_modificacion),
-                ft.TextButton(text="CANCELAR", on_click=lambda e: volver_callback(None))
+                ft.ElevatedButton(text="GUARDAR CAMBIOS", color=ft.colors.BLACK, icon=ft.icons.CHECK, on_click=ejecutar_modificacion),
+                ft.ElevatedButton(text = "VOLVER", color=ft.colors.BLACK, icon=ft.icons.ARROW_BACK, on_click=lambda e: volver_callback(None))
             ])
         ])
     )
@@ -240,7 +250,7 @@ def agregar_vacuna(page: ft.Page, diccionario_pacientes, volver_callback):
         mascota_actual = diccionario_pacientes[llave]
         opciones = VACUNAS_POR_ESPECIE.get(mascota_actual.especie, [])
         dd_vacuna.options.clear()
-        for vacuna in opciones.values():
+        for vacuna in opciones:
             dd_vacuna.options.append(
                 ft.dropdown.Option(vacuna))
         page.update()
@@ -274,13 +284,13 @@ def agregar_vacuna(page: ft.Page, diccionario_pacientes, volver_callback):
         ft.Text("AGREGAR VACUNA", size=20, weight="bold"),
         tx_mascota,
         tx_dueño,
-        ft.ElevatedButton(text="Buscar Paciente y vacunas correspondientes", 
+        ft.ElevatedButton(text="Buscar Paciente y vacunas correspondientes", color=ft.colors.BLACK, icon=ft.icons.CONTENT_PASTE_SEARCH_OUTLINED, 
             on_click=cargar_vacunas
         ),
         dd_vacuna,
         tx_fecha,
-        ft.ElevatedButton(text="Guardar vacuna",on_click=guardar_vacuna),
-        ft.ElevatedButton(text="Volver",on_click=volver_callback)
+        ft.ElevatedButton(text="Registrar vacuna", color=ft.colors.BLACK, icon=ft.icons.INSERT_INVITATION_SHARP, on_click=guardar_vacuna),
+        ft.ElevatedButton(text="Volver", color=ft.colors.BLACK, icon=ft.icons.ARROW_BACK, on_click=volver_callback)
     ]))
     page.update()
 
@@ -288,7 +298,7 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
     page.clean()
     tx_mascota = ft.TextField(label="Nombre de la mascota")
     tx_dueño = ft.TextField(label="Nombre del dueño (Completo)")
-    zona_notificacion = ft.Column()
+    zona_notificacion = ft.Column(spacing=10)
     def enviar_correo(e, paciente, pendientes):
         lista_formateada = "\n- ".join(pendientes)
         mensaje = (
@@ -325,7 +335,9 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
         paciente = diccionario_pacientes[llave]
         hoy = datetime.now()
         vacunas_para_notificar = []
-        mensajes_resultado = []
+        zona_notificacion.controls.append(
+            ft.Text(f"Estado de vacunación para {paciente.nombre}:", size=18, weight="bold")
+        )
         obligatorias = VACUNAS_POR_ESPECIE.get(paciente.especie, [])
         for vacuna_obligatoria in obligatorias:
             fechas = []
@@ -333,36 +345,46 @@ def mostrar_carnet(page: ft.Page, diccionario_pacientes, volver_callback):
                 if v.nombre == vacuna_obligatoria: 
                     fechas.append(v.fecha)
             if not fechas:
-                mensajes_resultado.append(f"Falta: {vacuna_obligatoria}")
+                texto_estado = f"Falta: {vacuna_obligatoria}"
+                color_texto = ft.colors.RED_400
                 vacunas_para_notificar.append(vacuna_obligatoria)
             else:
                 ultima_fecha = max(fechas)
                 vencimiento = ultima_fecha + timedelta(days=365)
                 if hoy > vencimiento:
-                    mensajes_resultado.append(f"{vacuna_obligatoria} vencida.")
+                    texto_estado = f"{vacuna_obligatoria} vencida."
+                    color_texto = ft.colors.ORANGE_700
                     vacunas_para_notificar.append(vacuna_obligatoria)
                 else:
                     dias_restantes = (vencimiento - hoy).days
-                    mensajes_resultado.append(f"{vacuna_obligatoria} al día ({dias_restantes} días).")
+                    texto_estado = f"{vacuna_obligatoria} al día ({dias_restantes} días restantes)."
+                    color_texto = ft.colors.GREEN_700
+            zona_notificacion.controls.append(
+                ft.Text(texto_estado, size=16, color=color_texto, weight="w500")
+            )
         if vacunas_para_notificar:
+            zona_notificacion.controls.append(ft.Divider())
             zona_notificacion.controls.append(ft.ElevatedButton(
                     f"Notificar {len(vacunas_para_notificar)} vacunas al dueño",
                     icon=ft.icons.EMAIL,
                     on_click=lambda e: enviar_correo(None, paciente, vacunas_para_notificar)))
-        resumen = "\n".join(mensajes_resultado)
-        page.snack_bar = ft.SnackBar(
-            ft.Text(f"Estado de {paciente.nombre}:\n{resumen}"),
-            duration=4000 
-        )
-        page.snack_bar.open = True
         page.update()
-    page.add(
-        ft.Text("CONSULTA DE CARNET", size=20, weight="bold"),
+    page.add(ft.Container(
+            content=ft.Row(
+                [
+                    ft.Text("CONSULTA DE CARNET", size=35, weight="bold"),
+                    ft.Icon(name=ft.icons.FEATURED_PLAY_LIST_ROUNDED, size=35, color=ft.colors.GREEN_200), 
+                ],
+                alignment=ft.MainAxisAlignment.CENTER, 
+                vertical_alignment=ft.CrossAxisAlignment.CENTER 
+            ),
+            alignment=ft.alignment.center,
+        ),
         tx_mascota,
         tx_dueño,
         ft.Row([
-            ft.ElevatedButton(text="BUSCAR", on_click=encontrar_vacunas),
-            ft.TextButton(text="VOLVER", on_click=lambda e: volver_callback(None))
+            ft.ElevatedButton(text="BUSCAR", color=ft.colors.BLACK, icon=ft.icons.SEARCH, on_click=encontrar_vacunas),
+            ft.ElevatedButton(text="Volver", color=ft.colors.BLACK, icon=ft.icons.ARROW_BACK, on_click=volver_callback)
         ]),
         zona_notificacion
     )
@@ -397,10 +419,11 @@ def eliminar_paciente(page: ft.Page, diccionario_pacientes, volver_callback):
             ft.Row([
                 ft.ElevatedButton(text=
                     "ELIMINAR",
+                    icon = ft.icons.DELETE_FOREVER_ROUNDED,
                     on_click=confirmar_eliminacion,
                     style=ft.ButtonStyle(color="white", bgcolor="red")
                 ),
-                ft.TextButton(text="VOLVER", on_click=lambda e: volver_callback(None))
+                ft.ElevatedButton(text="Volver", color=ft.colors.BLACK, icon=ft.icons.ARROW_BACK, on_click=volver_callback)
             ])
         ])
     )
